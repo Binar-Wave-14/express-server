@@ -1,3 +1,5 @@
+require('dotenv').config()
+
 const express = require('express')
 const fs = require('fs')
 const app = express()
@@ -8,28 +10,39 @@ app.use('/public', express.static('./public'))
 app.use(express.json())
 
 app.post('/status', (req, res, next) => {
-    const username = req.body.username
-    const password = req.body.password
+    try {
+        const username = req.body.username
+        const password = req.body.password
 
-    const isExist = database.find(data => {
-        return data.username === username
-    })
-
-    if (!isExist) {
-        return res.status(404).json({
-            message: 'user tidak ditemukan'
+        const isExist = database.find(data => {
+            return data.username === username
         })
-    }
 
-    if (isExist.password !== password) {
-        return res.status(401).json({
-            message: 'wrong password'
+        if (!isExist) {
+            return res.status(404).json({
+                message: 'user tidak ditemukan'
+            })
+        }
+
+        if (isExist.password !== password) {
+            return res.status(401).json({
+                message: 'wrong password'
+            })
+        }
+
+        username.map(user => {
+            console.log(user)
         })
-    }
 
-    return res.status(200).json({
-        message: 'success'
-    })
+        return res.status(200).json({
+            message: 'success'
+        })
+    } catch (error) {
+        throw {
+            message: error.message,
+            code: 500
+        }
+    }
 })
 
 app.get('/hello', (_, res) => {
@@ -54,6 +67,21 @@ app.get('/html', (_, res) => {
     const data = indexData.toString()
 
     return res.status(200).contentType('html').send(data)
+})
+
+app.use((err, req, res, next) => {
+    const code = err.code
+    let message = err.message
+
+    const mode = process.env.MODE
+
+    if (mode === 'production') {
+        message = 'internal server error'
+    }
+
+    return res.status(code).json({
+        message: message
+    })
 })
 
 app.listen(1234)
